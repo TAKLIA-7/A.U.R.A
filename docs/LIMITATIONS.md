@@ -1,0 +1,10 @@
+# Known limitations
+
+- The experiment runner executes deterministic scenario fixtures, not the LLM agent loop. Results are mock/development evidence only. A separate `POST /api/agent/run` endpoint is wired to the OpenAI Chat Completions tool loop and the registered tools, but it is not integrated into paired experiments.
+- JEV is the default semantic decision engine for every schema-valid protected agent action and AURA-mode experiment decision. Local deterministic invariants remain hard vetoes. The adapter has mocked HTTP coverage, but has not been live-tested with an OpenRouter key. `DECISION_ENGINE=local` remains a development fallback. Detailed per-decision cost aggregation for fixture experiments remains incomplete.
+- Experiment state uses in-process FastAPI background tasks. It is intended for a single local process and does not support durable job recovery or concurrency controls.
+- The dashboard has overview, experiment list, comparisons, scenario explorer, traces, audit, and configuration views. Advanced filtering, pagination, approval execution UI, trial drill-down, export formats, and many detailed analytics are incomplete. Real LLM run initiation is currently API-only.
+- JEV uncertainty can create a pending approval. The decision endpoint checks the submitted arguments against the stored argument hash and executes an approved registered tool once; rejection does not execute. The dashboard does not yet provide an approval review/decision UI, and concurrent multi-process approval behavior is not production hardened.
+- No authentication, CSRF protection, production hardening, migrations, statistical confidence intervals, persistent model invocation ledger, or browser-level smoke test. JEV thresholds are provisional and require calibration.
+- Gemini integration uses the Google Gen AI SDK and has mocked tool-loop tests but has not been live-tested with a Gemini API key. Free-tier limits vary by model and may change; consult current Google AI Studio terms before use.
+- Pricing is unknown unless independently configured; mock runs report unavailable token usage.
