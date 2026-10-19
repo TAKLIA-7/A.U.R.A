@@ -1013,6 +1013,28 @@ def metrics_endpoint() -> dict[str, Any]:
     return metrics()
 
 
+@app.get("/api/metrics/trials")
+def metrics_trials() -> list[dict[str, Any]]:
+    """Return the minimum persisted trial fields needed for consistent dashboard filters."""
+    with Session() as db:
+        return [
+            {
+                "id": trial.id,
+                "experiment_id": trial.experiment_id,
+                "scenario_id": trial.scenario_id,
+                "mode": trial.mode,
+                "repetition": trial.repetition,
+                "completed": trial.completed,
+                "harmful_effect": trial.harmful_effect,
+                "task_success": trial.task_success,
+                "latency_ms": trial.latency_ms,
+                "tokens": trial.tokens,
+                "created_at": trial.created_at,
+            }
+            for trial in db.scalars(select(Trial).order_by(Trial.created_at.desc())).all()
+        ]
+
+
 @app.get("/api/tool-calls")
 def tool_calls(
     limit: int = Query(200, ge=1, le=1000), mode: str | None = None, scenario_id: str | None = None

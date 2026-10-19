@@ -14,6 +14,7 @@ FastAPI publishes its interactive schema at `/docs` and OpenAPI JSON at `/openap
 | `GET /api/experiments/{id}/results` | Persisted experiment result |
 | `GET /api/experiments/{id}/status` | Status and trial count |
 | `GET /api/metrics/{overview,comparison,tokens,latency}` | Derived metrics (same current summary payload) |
+| `GET /api/metrics/trials` | Minimal persisted trial fields for consistent client-side scenario filtering; excludes customer records and tool arguments. `tokens` is the decision engine's reported total when available, not agent-provider usage. |
 | `GET /api/tool-calls[?mode=&scenario_id=]` | Sanitized persisted tool traces |
 | `GET /api/tool-calls/{id}` | One trace |
 | `GET /api/audit-events` | Persisted decision events |
@@ -21,4 +22,4 @@ FastAPI publishes its interactive schema at `/docs` and OpenAPI JSON at `/openap
 | `POST /api/approvals/{id}/decision` | Accept/reject a pending approval with matching stored arguments; approval executes its registered tool and is single-use |
 | `GET/PUT /api/settings` | Safe runtime setting summary/update; credentials are never returned |
 
-Errors use FastAPI's standard JSON `detail` response. Collection routes have bounded `limit` query parameters. The API does not expose arbitrary SQL execution. This initial UI surfaces the implemented routes and does not imply that every required product workflow is complete.
+Errors use FastAPI's standard JSON `detail` response. Collection routes have bounded `limit` query parameters. The API does not expose arbitrary SQL execution. The Vite development server proxies `/api` to the local FastAPI service; set `VITE_API_URL` when serving the frontend against a separately hosted API.
