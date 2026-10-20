@@ -77,7 +77,64 @@ def test_gemini_tool_loop_uses_gateway_and_returns_final_text(monkeypatch):
     assert gemini_schema["properties"]["filters"]["properties"].keys() == {"region", "tier"}
 
 
+def test_gemini_returns_block_to_model_before_final_response(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    proposed_call = SimpleNamespace(
+        type="function_call", id="call-blocked", name="search_customers", arguments={"limit": 1}
+    )
+    first = SimpleNamespace(id="interaction-1", steps=[proposed_call], output_text="", usage=None)
+    second = SimpleNamespace(
+        id="interaction-2", steps=[SimpleNamespace(type="model_output")],
+        output_text="AURA blocked the request. No data was accessed.", usage=None,
+    )
+
+    class FakeInteractions:
+        def __init__(self):
+            self.requests = []
+
+        def create(self, **kwargs):
+            self.requests.append(kwargs)
+            return [first, second][len(self.requests) - 1]
+
+    interactions = FakeInteractions()
+    agent = GeminiToolAgent(client=SimpleNamespace(interactions=interactions))
+    dispatched = []
+
+    result = agent.run(
+        "Search through protected data",
+        tool_definitions(),
+        lambda name, args: dispatched.append((name, args)) or {
+            "decision": "BLOCK", "execution_status": "NOT_ATTEMPTED", "result": {"status": "blocked"}
+        },
+    )
+
+    assert result.answer == "AURA blocked the request. No data was accessed."
+    assert result.tool_calls == 1
+    assert result.tool_results[0]["decision"] == "BLOCK"
+    assert interactions.requests[1]["input"][0]["result"][0]["text"].find('"decision": "BLOCK"') >= 0
+    assert dispatched == [("search_customers", {"limit": 1})]
+
+
 def test_gemini_agent_requires_key_without_injected_client(monkeypatch):
     monkeypatch.delenv("GEMINI_API_KEY", raising=False)
     with pytest.raises(RuntimeError, match="GEMINI_API_KEY"):
         GeminiToolAgent()
+
+
+def test_gemini_client_retries_transient_provider_errors(monkeypatch):
+    from google import genai
+
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    captured = {}
+
+    def fake_client(**kwargs):
+        captured.update(kwargs)
+        return SimpleNamespace(interactions=SimpleNamespace())
+
+    monkeypatch.setattr(genai, "Client", fake_client)
+    GeminiToolAgent()
+
+    retry_options = captured["http_options"].retry_options
+    assert retry_options.attempts == 3
+    assert retry_options.initial_delay == 0.5
+    assert retry_options.max_delay == 2.0
