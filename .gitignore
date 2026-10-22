@@ -1,10 +1,45 @@
-.venv/
-.packages/
+# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
-*.db
+*$py.class
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+
+# Virtual Environments
+.venv/
+venv/
+env/
+
+# Environment variables & secrets
 .env
-frontend/node_modules/
-frontend/dist/
+.env.local
+.env.*.local
+!.env.example
+
+# Testing & Linting
 .pytest_cache/
 .ruff_cache/
+.coverage
+htmlcov/
+.impeccable/
+.packages/
+
+# Databases & runtime data
+*.db
+*.sqlite3
+data/logs/*.jsonl
+data/runs/*
+data/test/*
+!data/.gitkeep
+
+# Editor & OS files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db

@@ -1,11 +1,45 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aura-agent"
+version = "0.1.0"
+description = "AURA — Agent Control Plane: Interception, Risk Assessment, and Observability"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+keywords = ["agent", "middleware", "risk", "observability", "tui", "cli"]
+authors = [
+    {name = "AURA Team"}
+]
+dependencies = [
+    "textual>=0.80.0",
+    "rich>=13.0.0",
+    "pydantic>=2.0.0",
+    "httpx>=0.25.0",
+    "google-genai>=1.0.0",
+    "python-dotenv>=1.0.0",
+    "aiofiles>=23.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-mock>=3.0.0",
+]
+
+[project.scripts]
+aura = "aura.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
 [tool.pytest.ini_options]
-pythonpath = ["."]
-testpaths = ["backend/tests"]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+pythonpath = ["src"]
 
-[tool.ruff]
-line-length = 100
-target-version = "py312"
-
-[tool.ruff.lint]
-select = ["E", "F", "I"]
-ignore = ["E501"]
+[tool.setuptools.package-dir]
+"" = "src"

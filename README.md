@@ -1,54 +1,141 @@
-# AURA — Runtime security MVP
+# A.U.R.A — Agent Control Plane & Observability CLI
 
-AURA is a local demonstration of a policy gateway for AI-agent database tools. It includes a FastAPI backend, fictional customer/order data in SQLite, five fixed tools, deterministic security policies, paired baseline/AURA fixture runs, persisted metrics/traces/audit events, and a React dashboard.
-
-The experiment runner is a deterministic mock fixture pipeline, not a real LLM benchmark. A separate `POST /api/agent/run` endpoint supports OpenAI tool calling through the registered tools when configured. JEV is AURA's primary semantic decision engine: every valid protected tool action in the agent endpoint and AURA experiment mode is sent to OpenRouter's Decisions API. Local validation and invariant checks can still veto a JEV allow. Uncertainty and API failures fail closed. The live OpenRouter integration has not been verified with a user API key.
-
-## Requirements
-
-- Python 3.12+ (the current implementation environment was Python 3.13)
-- Node.js 20+ and npm
-- No Docker or API key needed for mock mode
-
-## Run locally
-
-From the repository root in PowerShell:
-
-```powershell
-python -m venv .venv
-.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-Copy-Item .env.example .env
-python -m backend.scripts.seed_database
-uvicorn backend.app.main:app --reload
+```
+ █████╗ ██╗   ██╗██████╗  █████╗
+██╔══██╗██║   ██║██╔══██╗██╔══██╗
+███████║██║   ██║██████╔╝███████║
+██╔══██║██║   ██║██╔══██╗██╔══██║
+██║  ██║╚██████╔╝██║  ██║██║  ██║
+╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝
+Autonomous Unified Runtime Architecture
 ```
 
-In another terminal:
+**AURA** is an interactive, terminal-based agent middleware (TUI) that intercepts agent actions, submits contextual risk assessments to **JEV** (Judge & Evaluation Validator), enforces security decisions, controls tool execution, and provides real-time observability into AI agent behavior.
 
-```powershell
-cd frontend
-npm install
-npm run dev
+---
+
+## 🌟 Key Features
+
+- **Runtime Action Interception**: Intercepts all proposed tool operations before execution (`filesystem.list`, `filesystem.read`, `shell.execute`, `diagnostic.ping`, etc.).
+- **JEV Risk Assessment Engine**:
+  - **OpenRouter AI Engine**: Uses OpenRouter models (`google/gemini-2.0-flash-001`, `anthropic/claude-3.5-haiku`, `meta-llama/llama-3.3-70b-instruct`) as dynamic, intelligent JEV risk evaluators.
+  - **Proprietary JEV Endpoint**: HTTP client adapter for internal enterprise JEV endpoints.
+  - **Mock JEV Client**: Built-in deterministic risk simulation for offline testing and demos.
+- **Dual Policy Enforcement**:
+  - Deterministic allowlists and path traversal barriers (`..` detection).
+  - Fast-allow rules for benign diagnostic tools.
+  - JEV risk thresholding (`NONE`/`LOW` -> ALLOW, `MEDIUM` -> APPROVAL, `HIGH`/`CRITICAL` -> BLOCK).
+  - Human-in-the-loop interactive approvals for mutating operations.
+- **Interactive Terminal UI (TUI)**: Built with **Textual** & **Rich** featuring:
+  - `[1] CHAT`: Interactive chat session with live agent thought streaming, action interception badges, JEV risk cards, and human-in-the-loop approval dialogs.
+  - `[2] RUNS`: Session run history, status, action counts, and duration.
+  - `[3] LOGS`: Real-time streaming audit event log viewer.
+  - `[4] MONITOR`: Live telemetry, throughput metrics, risk distribution, and latency sparklines.
+  - `[5] POLICIES`: Active security policies and rule engine configuration.
+  - `[6] SETTINGS`: Live connectivity diagnostics and provider settings.
+- **Observability & Audit Trail**: Structured event bus with append-only JSONL logging (`data/logs/aura-events.jsonl`).
+
+---
+
+## 🚀 Quick Start
+
+### 1. Installation
+
+```bash
+# Clone the repository and install dependencies in editable mode
+pip install -e .
 ```
 
-Open <http://localhost:5173>. The API and interactive docs are at <http://localhost:8000/api/health> and <http://localhost:8000/docs>.
+### 2. Configure Environment
 
-The interactive agent defaults to Gemini. Create an API key in [Google AI Studio](https://aistudio.google.com/app/apikey), then set `GEMINI_API_KEY` and `GEMINI_MODEL` in `.env`. To use OpenAI instead, set `AGENT_PROVIDER=openai` and provide `OPENAI_API_KEY` / `OPENAI_MODEL`. Gemini's free tier has model-specific limits, and Google's pricing page says content on the free tier may be used to improve Google products; review the [current terms](https://ai.google.dev/gemini-api/docs/pricing) and use only fictional data. Configure `DECISION_ENGINE=jev` and `OPENROUTER_API_KEY` for protected decisions; this is the default in `.env.example`. Gemini chooses the proposed tool calls; JEV still assesses every valid protected action. `DECISION_ENGINE=local` is available only as a deterministic, key-free development fallback. AURA-mode paired experiments call JEV for each valid protected decision and can incur API usage; baseline and invalid/unregistered calls do not. Never add real secrets to `.env.example` or commit `.env`.
+Copy `.env.example` to `.env`:
 
-JEV uses OpenRouter's Decisions endpoint with model `typesafe/jev-1.13`; it returns structured risk probabilities, which AURA maps to allow, block, or approval required. The configured thresholds in `.env` are provisional and need calibration against representative scenarios before relying on them. For API behavior, see the [OpenRouter JEV tutorial](https://openrouter.ai/blog/tutorials/how-to-use-jev/) and [Decisions API reference](https://openrouter.ai/docs/api/api-reference/alphadecisions/submit-a-decisions-request).
-
-## Tests and lint
-
-```powershell
-pytest backend/tests -q
-ruff check backend
-cd frontend
-npm test
-npm run build
+```bash
+cp .env.example .env
 ```
 
-## Available tools and policies
+#### If using OpenRouter:
+```env
+OPENROUTER_API_KEY=sk-or-v1-your-key-here
+AURA_JEV_PROVIDER=openrouter
+AURA_LLM_PROVIDER=openrouter
+AURA_JEV_MODEL=google/gemini-2.0-flash-001
+AURA_JEV_MOCK_MODE=false
+```
 
-Registered tools: `get_customer`, `get_customer_orders`, `search_customers`, `get_order`, `export_customers`. Pydantic rejects unknown arguments; filters are limited to region/tier and protected exports to public fields with a configured row cap. The protected deterministic policy fails closed on engine failure, rejects sensitive exports and oversized inputs, and blocks an export after accumulated reads. Baseline may execute the registered export tool to make exposure measurable.
+#### If using Google Gemini directly:
+```env
+GOOGLE_API_KEY=AIzaSy...
+AURA_LLM_PROVIDER=gemini
+AURA_JEV_MOCK_MODE=true  # or configure real JEV endpoint
+```
 
-See [API contract](docs/API.md), [security model](docs/SECURITY_MODEL.md), [metric definitions](docs/METRICS.md), and [known limitations](docs/LIMITATIONS.md).
+### 3. Launching AURA
+
+```bash
+# Launch interactive TUI
+aura
+
+# Launch in mock mode (no API keys required, ideal for testing)
+aura --mock
+```
+
+---
+
+## ⌨️ Navigation & Controls
+
+| Key | Description |
+|---|---|
+| `1` | Switch to **CHAT** screen |
+| `2` | Switch to **RUNS** screen |
+| `3` | Switch to **LOGS** screen |
+| `4` | Switch to **MONITOR** screen |
+| `5` | Switch to **POLICIES** screen |
+| `6` | Switch to **SETTINGS** screen |
+| `Tab` | Focus next interactive element |
+| `Enter` | Submit prompt / Confirm action |
+| `Ctrl+C` | Quit AURA |
+
+---
+
+## 🧪 Running Tests
+
+AURA includes a comprehensive test suite across unit, integration, and security layers:
+
+```bash
+pytest tests -v
+```
+
+---
+
+## 📐 Architecture
+
+```
+User Prompt
+    │
+    ▼
+┌──────────────────────────────────────────────┐
+│                AURA Agent                    │
+│   (OpenRouter / Gemini / Mock LLM)          │
+└──────────────────────┬───────────────────────┘
+                       │ Proposes Tool Call
+                       ▼
+┌──────────────────────────────────────────────┐
+│             AURA Gateway / Proxy             │
+│   Deterministic Rules & Path Traversal Check │
+└──────────────────────┬───────────────────────┘
+                       │ Normalized Context Payload
+                       ▼
+┌──────────────────────────────────────────────┐
+│           JEV Risk Assessment Engine         │
+│   (OpenRouter AI / JEV Endpoint / Mock)      │
+└──────────────────────┬───────────────────────┘
+                       │ Risk Level & Recommended Action
+                       ▼
+┌──────────────────────────────────────────────┐
+│           AURA Policy Enforcement            │
+│  ALLOW ──► Execute Tool ──► Agent Turn       │
+│  BLOCK ──► Terminate Action ──► Audit Log    │
+│  APPROVE ─► Prompt Human Operator            │
+└──────────────────────────────────────────────┘
+```
